@@ -1,0 +1,195 @@
+
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sidethorn — WhimsyGoth (Private)</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{ --accent: #6ee7df; --muted: #cfc3ee; }
+html,body{height:100%;margin:0;font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial;}
+body{background:#07030a;color:var(--muted);background-image:url('assets/images/background.png');background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
+.container{width:min(920px,95vw);max-width:920px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.35));border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.6);overflow:hidden;}
+.header{padding:18px 22px;display:flex;align-items:center;gap:12px;}
+.title{font-family: 'Palatino', serif;font-size:22px;color:#dfe8ff;}
+.main{display:flex;gap:20px;padding:18px;}
+.left{flex:1;padding:8px 12px;border-right:1px solid rgba(255,255,255,0.03);}
+.right{width:360px;padding:12px;}
+.login-box{max-width:320px;margin:40px auto;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.25));padding:18px;border-radius:12px;text-align:center;border:1px solid rgba(255,255,255,0.04);}
+.login-box img{width:160px;height:auto;border-radius:12px;box-shadow:0 8px 18px rgba(0,0,0,0.6);}
+.pass-input{margin-top:12px;display:flex;gap:8px;justify-content:center;}
+.pass-input input{padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.4);color:var(--muted);}
+.pass-input button{background:var(--accent);border:none;padding:10px 12px;border-radius:8px;cursor:pointer;color:#050006;font-weight:700;}
+@keyframes glow {0% {filter:drop-shadow(0 0 0px rgba(110,231,223,0.0));}50%{filter:drop-shadow(0 0 14px rgba(110,231,223,0.12));}100%{filter:drop-shadow(0 0 0px rgba(110,231,223,0.0));}}
+.profile-title{font-size:18px;color:var(--muted);margin-bottom:8px;}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.controls button{background:#2a2030;border:1px solid rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer}
+.task{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));margin-bottom:8px;border:1px solid rgba(150,120,180,0.06);}
+.task img{width:44px;height:44px;border-radius:8px}
+.task .meta{flex:1}
+.task .meta .title{font-weight:700;color:#f3f1ff}
+.task .meta .by{font-size:12px;color:#bdb0de}
+.add-btn{background:var(--accent);border:none;padding:10px 12px;border-radius:8px;color:#050006;cursor:pointer;font-weight:700}
+.streak-banner{padding:10px;border-radius:10px;background:linear-gradient(90deg, rgba(110,231,223,0.06), rgba(200,160,255,0.04));border:1px solid rgba(110,231,223,0.06);margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.streak-cells{display:flex;gap:6px}
+.cell{width:28px;height:28px;border-radius:6px;background:#261a2a;border:2px solid rgba(120,90,160,0.5);display:flex;align-items:center;justify-content:center;color:#efe8ff}
+.cell.filled{background:linear-gradient(180deg,#7be8d8,#4fbfdf);transform:scale(1.03)}
+.footer{padding:12px 18px;background:rgba(0,0,0,0.2);text-align:center;font-size:12px;color:#bfb3e8}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="header"><div class="title">Sidethorn — WhimsyGoth (Private)</div></div>
+  <div class="main">
+    <div class="left" id="main-left"></div>
+    <div class="right" id="main-right">
+      <div class="login-box" id="loginBox" style="display:none">
+        <img src="assets/images/cat.png" alt="Moon Cat" id="catImg">
+        <div style="margin-top:12px;font-weight:700;color:#efe8ff">Enter Passphrase</div>
+        <div class="pass-input">
+          <input id="pass" type="password" placeholder="Passphrase">
+          <button id="submitPass">Enter</button>
+        </div>
+        <div style="margin-top:10px;font-size:13px;color:#c9bfe6">This app is invite-only.</div>
+      </div>
+      <div id="lockedNotice" style="display:none;padding:12px;border-radius:8px;background:rgba(0,0,0,0.2);text-align:center;color:#d9cfe8">Locked to profile: <span id="lockedName"></span></div>
+      <div style="height:18px"></div>
+      <div class="streak-banner" id="streakBanner" style="display:none">
+        <div style="font-weight:800;color:#e8f7f2">Shared Streak</div>
+        <div class="streak-cells" id="streakCells"></div>
+        <div style="margin-left:auto;color:#d9cfe8" id="streakText"></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Sidethorn — for Brian & Darlene · Private</div>
+</div>
+
+<script>
+const PASS = "Myrotic";
+const PROFILES = ["Brian","Darlene"];
+function tasksKey(user){ return "sidethorn_tasks_" + user; }
+function userKey(){ return "sidethorn_user_locked"; }
+function streakKey(){ return "sidethorn_shared_streak"; }
+const loginBox = document.getElementById('loginBox');
+const mainLeft = document.getElementById('main-left');
+const lockedNotice = document.getElementById('lockedNotice');
+const lockedNameSpan = document.getElementById('lockedName');
+const streakBanner = document.getElementById('streakBanner');
+const streakCells = document.getElementById('streakCells');
+const streakText = document.getElementById('streakText');
+function init(){
+  const locked = localStorage.getItem(userKey());
+  if(!localStorage.getItem('sidethorn_authed')){
+    showLogin();
+  } else if(!locked){
+    showProfileChooser();
+  } else {
+    loadDashboard(locked);
+  }
+  renderSharedStreak();
+}
+function showLogin(){
+  loginBox.style.display = 'block';
+  document.getElementById('submitPass').onclick = attemptPass;
+  document.getElementById('pass').onkeydown = function(e){ if(e.key==='Enter') attemptPass(); }
+}
+function attemptPass(){
+  const v = document.getElementById('pass').value || '';
+  if(v === PASS){
+    document.getElementById('catImg').style.animation = 'glow 900ms ease';
+    setTimeout(()=>{
+      localStorage.setItem('sidethorn_authed','1');
+      loginBox.style.display = 'none';
+      const locked = localStorage.getItem(userKey());
+      if(!locked) showProfileChooser(); else loadDashboard(locked);
+    },900);
+  } else {
+    alert('Wrong passphrase.');
+  }
+}
+function showProfileChooser(){
+  const chooser = document.createElement('div');
+  chooser.style.padding = '24px';
+  chooser.style.textAlign = 'center';
+  chooser.innerHTML = '<div style="font-weight:800;margin-bottom:12px">Pick your profile</div>';
+  PROFILES.forEach(p=>{
+    const btn = document.createElement('button');
+    btn.textContent = p;
+    btn.style.margin='6px';
+    btn.onclick = ()=>{ lockProfile(p); };
+    chooser.appendChild(btn);
+  });
+  mainLeft.innerHTML='';
+  mainLeft.appendChild(chooser);
+}
+function lockProfile(name){
+  localStorage.setItem(userKey(), name);
+  if(!localStorage.getItem(tasksKey(name))){ localStorage.setItem(tasksKey(name), JSON.stringify([])); }
+  loadDashboard(name);
+}
+function loadDashboard(user){
+  lockedNotice.style.display = 'block';
+  lockedNameSpan.textContent = user;
+  mainLeft.innerHTML = '';
+  const header = document.createElement('div');
+  header.innerHTML = '<div class="profile-title">Welcome, '+user+'</div>';
+  const controls = document.createElement('div');
+  controls.className='controls';
+  const addBtn = document.createElement('button'); addBtn.className='add-btn'; addBtn.textContent='Add Task'; addBtn.onclick = ()=>addTask(user);
+  controls.appendChild(addBtn);
+  header.appendChild(controls);
+  const list = document.createElement('div'); list.id = 'taskList';
+  mainLeft.appendChild(header);
+  mainLeft.appendChild(list);
+  renderTasksFor(user);
+  streakBanner.style.display = 'flex';
+  renderSharedStreak();
+}
+function renderTasksFor(user){
+  const list = document.getElementById('taskList');
+  list.innerHTML = '';
+  const tasks = JSON.parse(localStorage.getItem(tasksKey(user)) || '[]');
+  tasks.forEach((t,i)=>{
+    const el = document.createElement('div'); el.className='task';
+    const img = document.createElement('img'); img.src = 'assets/icons/' + (i % 7 === 0 ? 'sword' : i%7===1 ? 'lantern' : i%7===2 ? 'potion' : i%7===3 ? 'ghost' : i%7===4 ? 'skull' : i%7===5 ? 'spellbook' : 'crystal') + '.png';
+    el.appendChild(img);
+    const meta = document.createElement('div'); meta.className='meta';
+    meta.innerHTML = '<div class="title">'+t.title+'</div><div class="by">Assigned to: '+user+'</div>';
+    el.appendChild(meta);
+    const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = !!t.completed;
+    chk.onchange = ()=>{ t.completed = chk.checked; tasks[i]=t; localStorage.setItem(tasksKey(user), JSON.stringify(tasks)); renderTasksFor(user); evaluateSharedStreak(); };
+    el.appendChild(chk);
+    list.appendChild(el);
+  });
+}
+function addTask(user){
+  const title = prompt('Task title (for ' + user + ')');
+  if(!title) return;
+  const tasks = JSON.parse(localStorage.getItem(tasksKey(user)) || '[]');
+  tasks.push({title:title, completed:false, createdAt:Date.now()});
+  localStorage.setItem(tasksKey(user), JSON.stringify(tasks));
+  renderTasksFor(user);
+  evaluateSharedStreak();
+}
+function evaluateSharedStreak(){
+  const tasksA = JSON.parse(localStorage.getItem(tasksKey(PROFILES[0])) || '[]');
+  const tasksB = JSON.parse(localStorage.getItem(tasksKey(PROFILES[1])) || '[]');
+  const incompleteA = tasksA.some(t=>!t.completed);
+  const incompleteB = tasksB.some(t=>!t.completed);
+  let s = parseInt(localStorage.getItem(streakKey()) || '0');
+  if(!incompleteA && !incompleteB && (tasksA.length>0 || tasksB.length>0)){
+    s = s + 1;
+    localStorage.setItem(streakKey(), String(s));
+    alert('Shared streak advanced!');
+  }
+  renderSharedStreak();
+}
+function renderSharedStreak(){
+  const s = parseInt(localStorage.getItem(streakKey()) || '0');
+  streakCells.innerHTML='';
+  const display = Math.min(7, s);
+  for(let i=0;i<display;i++){ const c = document.createElement('div'); c.className='cell filled'; c.textContent='★'; streakCells.appendChild(c); }
+  for(let i=display;i<7;i++){ const c = document.createElement('div'); c.className='cell'; c.textContent=''; streakCells.appendChild(c); }
+  streakText.textContent = s + ' days together';
+}
+init();
+</script>
+</body></html>
